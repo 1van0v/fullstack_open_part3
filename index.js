@@ -9,6 +9,7 @@ const PORT = 3001;
 const app = express();
 
 app.use(express.json());
+app.use(express.static('build'));
 app.use(morgan(logger));
 
 app.get('/api/persons', (request, response) => {
@@ -16,7 +17,6 @@ app.get('/api/persons', (request, response) => {
 });
 
 app.get('/info', (request, response) => {
-  console.log(persons);
   response.send(`
     <p>Phonebook has info for ${persons.length}</p>
     <p>${new Date().toString()}</p>
@@ -43,36 +43,37 @@ app.delete('/api/persons/:id', (request, response) => {
 });
 
 app.post('/api/persons', (request, response) => {
-  console.log('received', request.body);
   const { body: person = null } = request;
-  let error = person ? '' : 'Content is missing';
+  let error;
 
-  if ((person && !person.number) || !person.number.length) {
-    error = 'number is required';
+  if (!person) {
+    return sendError('Content is missing');
   }
 
-  if ((person && !person.name) || !person.name.length) {
-    error = 'name is required';
+  if (!person.number) {
+    return sendError('number is required');
   }
 
-  if (!error) {
-    persons.some(({ name, number }) => {
-      let property = null;
-      if (name === person.name) {
-        property = 'name';
-      }
-      if (number === person.number) {
-        property = 'number';
-      }
-      if (property) {
-        error = `${property} should be unique`;
-        return true;
-      }
-    });
+  if (!person.name) {
+    return sendError('name is required');
   }
+
+  persons.some(({ name, number }) => {
+    let property = null;
+    if (name === person.name) {
+      property = 'name';
+    }
+    if (number === person.number) {
+      property = 'number';
+    }
+    if (property) {
+      error = `${property} should be unique`;
+      return true;
+    }
+  });
 
   if (error) {
-    return response.status(404).json({ error });
+    return sendError(error);
   }
 
   person.id = getId();
@@ -80,6 +81,10 @@ app.post('/api/persons', (request, response) => {
   persons = persons.concat(person);
 
   response.json(person);
+
+  function sendError(error) {
+    response.status(404).json({ error });
+  }
 });
 
 app.listen(PORT, () => {
