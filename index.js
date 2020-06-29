@@ -42,11 +42,34 @@ app.delete('/api/persons/:id', (request, response) => {
 app.post('/api/persons', (request, response) => {
   console.log('received', request.body);
   const { body: person = null } = request;
+  let error = person ? '' : 'Content is missing';
 
-  if (!person) {
-    return response.status(404).json({
-      error: 'Content is missing'
+  if ((person && !person.number) || !person.number.length) {
+    error = 'number is required';
+  }
+
+  if ((person && !person.name) || !person.name.length) {
+    error = 'name is required';
+  }
+
+  if (!error) {
+    persons.some(({ name, number }) => {
+      let property = null;
+      if (name === person.name) {
+        property = 'name';
+      }
+      if (number === person.number) {
+        property = 'number';
+      }
+      if (property) {
+        error = `${property} should be unique`;
+        return true;
+      }
     });
+  }
+
+  if (error) {
+    return response.status(404).json({ error });
   }
 
   person.id = getId();
