@@ -1,5 +1,5 @@
 const express = require('express');
-const { persons } = require('./persons');
+let { persons } = require('./persons');
 const PORT = 3001;
 
 const app = express();
@@ -27,6 +27,14 @@ app.get('/api/persons/:id', (request, response) => {
   }
 
   response.status(404).json({ error: 'Cannot find the requested person' });
+});
+
+app.delete('/api/persons/:id', (request, response) => {
+  const idToDelete = +request.params.id;
+
+  persons = persons.filter(({ id }) => id !== idToDelete);
+
+  response.status(204).end();
 });
 
 app.listen(PORT, () => {
