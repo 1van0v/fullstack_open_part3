@@ -5,7 +5,7 @@ let { persons } = require('./persons');
 const getId = require('./idGenerator');
 const logger = require('./logger');
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const app = express();
 
 app.use(express.json());
