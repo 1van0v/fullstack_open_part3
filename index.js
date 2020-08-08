@@ -1,11 +1,13 @@
+require('dotenv').config();
+
 const express = require('express');
 const morgan = require('morgan');
 
 let { persons } = require('./persons');
-const getId = require('./idGenerator');
 const logger = require('./logger');
+const Person = require('./models/person');
 
-const PORT = 3001;
+const PORT = process.env.PORT;
 const app = express();
 
 app.use(express.json());
@@ -13,33 +15,27 @@ app.use(express.static('build'));
 app.use(morgan(logger));
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons);
+  Person.find({}).then((result) => response.json(result));
 });
 
 app.get('/info', (request, response) => {
-  response.send(`
-    <p>Phonebook has info for ${persons.length}</p>
-    <p>${new Date().toString()}</p>
-  `);
+  Person.find({}).then((persons) =>
+    response.send(`
+      <p>Phonebook has info for ${persons.length}</p>
+      <p>${new Date().toString()}</p>
+    `)
+  );
 });
 
 app.get('/api/persons/:id', (request, response) => {
-  const requestedId = +request.params.id;
-  const person = persons.find(({ id }) => id === requestedId);
-
-  if (person) {
-    return response.json(person);
-  }
-
-  response.status(404).json({ error: 'Cannot find the requested person' });
+  const { id } = +request.params;
+  Person.find({ _id: id }).then((person) => response.json(person));
 });
 
 app.delete('/api/persons/:id', (request, response) => {
-  const idToDelete = +request.params.id;
+  const { id } = request.params;
 
-  persons = persons.filter(({ id }) => id !== idToDelete);
-
-  response.status(204).end();
+  Person.deleteOne({ _id: id }).then(() => response.status(204).end());
 });
 
 app.post('/api/persons', (request, response) => {
@@ -76,11 +72,7 @@ app.post('/api/persons', (request, response) => {
     return sendError(error);
   }
 
-  person.id = getId();
-
-  persons = persons.concat(person);
-
-  response.json(person);
+  Person.create(person).then((inserted) => response.json(inserted));
 
   function sendError(error) {
     response.status(404).json({ error });
