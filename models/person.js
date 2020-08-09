@@ -4,13 +4,17 @@ const url = process.env.MONGO_URI;
 console.log('connecting to', url);
 
 mongoose
-  .connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(url, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true
+  })
   .then(() => console.log('connected to DB'))
   .catch((error) => console.log('something went wrong', error.message));
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
+  name: { type: String, required: true, unique: true },
+  number: { type: String, required: true }
 });
 
 personSchema.set('toJSON', {

@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
 
-let { persons } = require('./persons');
 const logger = require('./logger');
 const Person = require('./models/person');
 
@@ -41,9 +40,9 @@ app.get('/api/persons/:id', (request, response, next) => {
 });
 
 app.delete('/api/persons/:id', (request, response) => {
-  const { id } = request.params;
-
-  Person.deleteOne({ _id: id }).then(() => response.status(204).end());
+  Person.findByIdAndDelete(request.params.id).then(() =>
+    response.status(204).end()
+  );
 });
 
 app.put('/api/persons/:id', (request, response) => {
@@ -52,45 +51,12 @@ app.put('/api/persons/:id', (request, response) => {
   }).then((result) => response.json(result));
 });
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const { body: person = null } = request;
-  let error;
 
-  if (!person) {
-    return sendError('Content is missing');
-  }
-
-  if (!person.number) {
-    return sendError('number is required');
-  }
-
-  if (!person.name) {
-    return sendError('name is required');
-  }
-
-  persons.some(({ name, number }) => {
-    let property = null;
-    if (name === person.name) {
-      property = 'name';
-    }
-    if (number === person.number) {
-      property = 'number';
-    }
-    if (property) {
-      error = `${property} should be unique`;
-      return true;
-    }
-  });
-
-  if (error) {
-    return sendError(error);
-  }
-
-  Person.create(person).then((inserted) => response.json(inserted));
-
-  function sendError(error) {
-    response.status(404).json({ error });
-  }
+  Person.create(person)
+    .then((inserted) => response.json(inserted))
+    .catch((error) => next(error));
 });
 
 function unknownEndpoint(request, response) {
@@ -98,10 +64,18 @@ function unknownEndpoint(request, response) {
 }
 
 function errorHandler(error, request, response, next) {
-  console.log('middleware', error.message);
+  console.log('middleware', typeof error, error.message);
 
-  if (error.message === 'CastError') {
+  if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformed ID' });
+  }
+
+  if (error.name === 'ValidationError') {
+    return response.status(400).send({ error: error.message });
+  }
+
+  if (error.name === 'MongoError' && error.code === 11000) {
+    return response.status(400).send({ error: 'Duplicate key' });
   }
 
   next(error);
