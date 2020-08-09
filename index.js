@@ -28,7 +28,7 @@ app.get('/info', (request, response) => {
 });
 
 app.get('/api/persons/:id', (request, response, next) => {
-  const { id } = +request.params;
+  const { id } = request.params;
   Person.findById(id)
     .then((person) => {
       if (person) {
