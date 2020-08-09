@@ -46,6 +46,12 @@ app.delete('/api/persons/:id', (request, response) => {
   Person.deleteOne({ _id: id }).then(() => response.status(204).end());
 });
 
+app.put('/api/persons/:id', (request, response) => {
+  Person.findByIdAndUpdate(request.params.id, request.body, {
+    new: true
+  }).then((result) => response.json(result));
+});
+
 app.post('/api/persons', (request, response) => {
   const { body: person = null } = request;
   let error;
