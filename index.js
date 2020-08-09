@@ -27,9 +27,17 @@ app.get('/info', (request, response) => {
   );
 });
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
   const { id } = +request.params;
-  Person.find({ _id: id }).then((person) => response.json(person));
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
 });
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -78,6 +86,23 @@ app.post('/api/persons', (request, response) => {
     response.status(404).json({ error });
   }
 });
+
+function unknownEndpoint(request, response) {
+  response.status(404).send({ error: 'unknown endpoint' });
+}
+
+function errorHandler(error, request, response, next) {
+  console.log('middleware', error.message);
+
+  if (error.message === 'CastError') {
+    return response.status(400).send({ error: 'malformed ID' });
+  }
+
+  next(error);
+}
+
+app.use(unknownEndpoint);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log('Server is running on port', PORT);
