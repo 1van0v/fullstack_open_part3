@@ -13,8 +13,20 @@ mongoose
   .catch((error) => console.log('something went wrong', error.message));
 
 const personSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  number: { type: String, required: true }
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    minlength: [3, 'Name should contain at least 3 symbols']
+  },
+  number: {
+    type: String,
+    required: true,
+    validate: {
+      validator: (v) => v.match(/\d+/g).join('').length >= 8,
+      message: (props) => `${props.value} should contain at least 8 digits`
+    }
+  }
 });
 
 personSchema.set('toJSON', {
